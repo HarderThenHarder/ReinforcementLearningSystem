@@ -1,0 +1,37 @@
+{
+    "red_team": {
+                    "attackuav" : [
+                                    {"pos": [100, 100], "img_path": "img/attackuav.png", "index": 0, "velocity": [0.388, 0], "action_list": [-1, 0, 1]}
+                    ],
+
+                    "jamminguav": [
+                                        {"pos": [300, 400], "img_path": "img/jamminguav.png", "index": 0, "velocity": [0.036, 0], "action_list": [-5, 0, 5]},
+                                        {"pos": [300, 429], "img_path": "img/jamminguav.png", "index": 1, "velocity": [0.036, 0], "action_list": [-5, 0, 5]},
+                                        {"pos": [280, 410], "img_path": "img/jamminguav.png", "index": 2, "velocity": [0.036, 0], "action_list": [-5, 0, 5]}
+                                ]
+                },
+
+    "blue_team":   {
+                        "radar": [
+                                    {"pos": [1200, 80], "img_path": "img/radar.png", "index": 0, "detect_r": 200, "kernel_r": 80, "rotate_speed": 0.1},
+                                    {"pos": [980, 240], "img_path": "img/radar.png", "index": 1, "detect_r": 200, "kernel_r": 80, "rotate_speed": 0.1},
+                                    {"pos": [780, 450], "img_path": "img/radar.png", "index": 2, "detect_r": 200, "kernel_r": 80, "rotate_speed": 0.1},
+                                    {"pos": [600, 640], "img_path": "img/radar.png", "index": 3, "detect_r": 200, "kernel_r": 80, "rotate_speed": 0.1}
+                                ],
+
+                        "command": [
+                                        {"pos": [1350, 750], "img_path": "img/command.png", "index": 0}
+                                ],
+
+                        "fort": [
+                                    {"pos": [1300, 380], "img_path": "img/fort.png", "index": 0},
+                                    {"pos": [900, 750], "img_path": "img/fort.png", "index": 1}
+                                ],
+
+                        "antiuavcar": [
+                                            {"pos": [1000, 600], "img_path": "img/antiuavcar.png", "index": 0, "velocity": [0.022, 0]},
+                                            {"pos": [1200, 500], "img_path": "img/antiuavcar.png", "index": 1, "velocity": [0.022, 0]},
+                                            {"pos": [1100, 460], "img_path": "img/antiuavcar.png", "index": 2, "velocity": [0.022, 0]}
+                                      ]
+                    }
+}
