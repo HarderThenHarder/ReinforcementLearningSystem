@@ -50,11 +50,13 @@ class EMCSimulator(object):
         for radar in self.blue_team.object_dict["radar"]:
             obs_list.append(radar.pos[0])
             obs_list.append(radar.pos[1])
-            obs_list.append(radar.detect_direction[0])
-            obs_list.append(radar.detect_direction[1])
+            # obs_list.append(radar.detect_direction[0])
+            # obs_list.append(radar.detect_direction[1])
         command = self.blue_team.object_dict["command"][0]
         obs_list.append(command.pos[0])
         obs_list.append(command.pos[1])
+        obs_list.append(uav.velocity[0])
+        obs_list.append(uav.velocity[1])
         return obs_list
 
     def render(self):
@@ -82,11 +84,13 @@ class EMCSimulator(object):
         for radar in self.blue_team.object_dict["radar"]:
             obs_list.append(radar.pos[0])
             obs_list.append(radar.pos[1])
-            obs_list.append(radar.detect_direction[0])
-            obs_list.append(radar.detect_direction[1])
+            # obs_list.append(radar.detect_direction[0])
+            # obs_list.append(radar.detect_direction[1])
         command = self.blue_team.object_dict["command"][0]
         obs_list.append(command.pos[0])
         obs_list.append(command.pos[1])
+        obs_list.append(uav.velocity[0])
+        obs_list.append(uav.velocity[1])
         return obs_list
 
     def check_if_done(self):
