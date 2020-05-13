@@ -66,7 +66,7 @@ def DQN_brain():
     blue_team = BlueTeam(blue_team_object_list)
     simulator = EMCSimulator(1400, 800, blue_team, red_team, render=True)
 
-    dqn = DQN(observation_dim=20, action_dim=3, memory_capacity=1000)
+    dqn = DQN(observation_dim=12, action_dim=3, memory_capacity=1000)
 
     log_name = "run/DQN_brain_no_render"
     if os.path.exists(log_name):
@@ -120,7 +120,7 @@ def DQN_brain():
 
 def PPO_brain():
     # build the environment
-    render_flag = False
+    render_flag = True
     config = json.load(open("config.json", 'r'))
     red_team_object_list = config["red_team"]
     blue_team_object_list = config["blue_team"]
@@ -216,7 +216,7 @@ def PPO_brain():
 
 
 def PPO_test():
-    render_flag = False
+    render_flag = True
     config = json.load(open("config.json", 'r'))
     red_team_object_list = config["red_team"]
     blue_team_object_list = config["blue_team"]
@@ -241,5 +241,5 @@ def PPO_test():
 if __name__ == '__main__':
     # PG_brain()
     # DQN_brain()
-    PPO_brain()
-    # PPO_test()
+    # PPO_brain()
+    PPO_test()

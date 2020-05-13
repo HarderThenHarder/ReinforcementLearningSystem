@@ -19,11 +19,11 @@ class Net(nn.Module):
 
     def __init__(self, observation_dim, action_dim):
         super(Net, self).__init__()
-        self.fc1 = nn.Linear(observation_dim, 80)
+        self.fc1 = nn.Linear(observation_dim, 20)
         self.fc1.weight.data.normal_(0, 0.1)
-        self.fc2 = nn.Linear(80, 40)
+        self.fc2 = nn.Linear(20, 10)
         self.fc2.weight.data.normal_(0, 0.1)
-        self.fc3 = nn.Linear(40, action_dim)
+        self.fc3 = nn.Linear(10, action_dim)
         self.fc3.weight.data.normal_(0, 0.1)
 
     def forward(self, x):
@@ -34,7 +34,7 @@ class Net(nn.Module):
 
 class DQN(object):
 
-    def __init__(self, observation_dim, action_dim, batch_size=32, memory_capacity=1000, exploration_factor=1e-5):
+    def __init__(self, observation_dim, action_dim, batch_size=32, memory_capacity=1000, exploration_factor=1e-4):
         self.observation_dim = observation_dim
         self.action_dim = action_dim
         self.batch_size = batch_size
@@ -46,7 +46,7 @@ class DQN(object):
         self.optimizer = torch.optim.Adam(self.evaluate_net.parameters(), lr=LR)
         self.point = 0
         self.learn_step = 0
-        self.epsilon = 0        # exploration rate
+        self.epsilon = 0.2        # exploration rate
 
     def choose_action(self, s):
         s = torch.unsqueeze(torch.FloatTensor(s), 0)
@@ -62,7 +62,7 @@ class DQN(object):
 
     def sample_batch_data(self, batch_size):
         perm_idx = np.random.choice(len(self.memory), batch_size)
-        return self.memory[perm_idx]
+        return self.memory[perm_idx, :]
 
     def learn(self) -> float:
         if self.learn_step % TARGET_REPLACE_ITER == 0:
@@ -71,12 +71,12 @@ class DQN(object):
 
         batch_memory = self.sample_batch_data(self.batch_size)
         batch_state = torch.FloatTensor(batch_memory[:, :self.observation_dim])
-        batch_action = torch.LongTensor(batch_memory[:, self.observation_dim: self.observation_dim].astype(int))
+        batch_action = torch.LongTensor(batch_memory[:, self.observation_dim: self.observation_dim + 1].astype(int))
         batch_reward = torch.FloatTensor(batch_memory[:, self.observation_dim + 1: self.observation_dim + 2])
         batch_next_state = torch.FloatTensor(batch_memory[:, -self.observation_dim:])
 
         q_eval = self.evaluate_net(batch_state)
-        q = q_eval.gather(1, batch_action)
+        q_eval = q_eval.gather(1, batch_action)
         q_next = self.target_net(batch_next_state).detach()
         q_target = batch_reward + GAMMA * q_next.max(1)[0].view(self.batch_size, 1)
         loss = self.loss_Function(q_eval, q_target)
