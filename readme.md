@@ -1,6 +1,5 @@
 ## EMC Learning System
 
----
 
 ### 1. Introduction
 
