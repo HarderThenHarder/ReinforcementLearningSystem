@@ -45,7 +45,7 @@ while True:
 
 config.json 文件用于定义初始化场景，例如：红方有几架攻击机？蓝方有几个扫描雷达，这些雷达位于什么位置？这些属性都由config.json文件决定，例如，如果现在我们想为蓝方添加一个新的雷达，则只需要在json文件中对应位置添加新雷达的初始化信息即可：
 
-```json
+```python
 {
 	    ...
     
@@ -96,9 +96,7 @@ git clone https://github.com/HarderThenHarder/EMCSimulator
 pip install -r requirements.txt
 ```
 
-
-
-1. 运行 main 文件，main文件默认为加载预训练好的PPO模型并控制红方无人机躲避雷达扫描，若要训练自己的算法模型请修改main.py中的内容。
+2. 运行 main 文件，main文件默认为加载预训练好的PPO模型并控制红方无人机躲避雷达扫描，若要训练自己的算法模型请修改main.py中的内容。
 
 ```python
 python main.py
