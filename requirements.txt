@@ -1,0 +1,5 @@
+pygame
+pytorch
+torchvision
+tensorflow
+tensorboard
