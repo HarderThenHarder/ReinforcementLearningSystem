@@ -7,7 +7,7 @@
 
 整个游戏分为红蓝双方，红方包含**突防战斗机**（红色运动飞机）和**雷达干扰机**（原地停留的飞机，暂未完全实现功能）；蓝方包含扫描雷达（红色区域为雷达禁区，飞机进入该区域立马被发现；绿色区域为雷达观测区，在该区域中的飞机只有在被红线探测到时才算被发现）、巡航小车（暂未完全实现功能）。PPO算法需要学习如何操控红方突防飞机躲避扫描雷达，并成功飞抵蓝方大本营：
 
-<div align=center><img src="assets/result.gif"></div>
+<div align=center><img src="assets/result.gif" width=600></div>
 
 
 
@@ -40,7 +40,7 @@ while True:
 
 上述代码运行效果如下，在代码中 step() 函数红方突防飞机行为参数值恒为1，代表控制红方突防飞机一直保持向右直飞，图片最下方显示的是此刻的观测状态和行为回报值:
 
-<div align=center><img src="assets/simulator.gif"></div>
+<div align=center><img src="assets/simulator.gif" width=600></div>
 
 
 
