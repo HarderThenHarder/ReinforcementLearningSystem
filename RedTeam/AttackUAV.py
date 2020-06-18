@@ -52,15 +52,7 @@ class AttackUAV(GameObject):
     def update(self, **kwargs) -> bool:
         done = False
         time_step = kwargs["time_step"]
-        env = kwargs["env"]
         action = kwargs["action_list"][0][self.index]
-
-        # self.simple_move(time_step)
-
-        # if not MathUtils.get_distance(self.pos, env.blue_team.object_dict["command"][0].pos) < env.blue_team.object_dict["command"][0].warning_area_r / 2:
-        #     self.line_to_target(time_step, env)
-        # else:
-        #     self.stay()
 
         self.move_by_command(time_step, action)
 

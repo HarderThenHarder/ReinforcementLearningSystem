@@ -14,7 +14,7 @@ class Command(GameObject):
         self.warning_area_r = 100
 
     def render(self, screen):
-        gfx.filled_circle(screen, self.pos[0], self.pos[1], self.warning_area_r, (0, 0, 100, 80))
+        gfx.filled_circle(screen, self.pos[0], self.pos[1], self.warning_area_r, (50, 50, 100, 80))
         screen.blit(self.img, self.draw_pos)
 
     def update(self, **kwargs) -> bool:

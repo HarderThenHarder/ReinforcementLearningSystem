@@ -8,6 +8,7 @@ from utilis.MathUtils import MathUtils
 import pygame.gfxdraw as gfx
 import math
 import pygame
+from Drawer.Pencil import Pencil
 
 
 class Radar(GameObject):
@@ -21,10 +22,12 @@ class Radar(GameObject):
         self.detect_direction = [self.detect_r * math.cos(math.radians(self.start_angle)), self.detect_r * math.sin(math.radians(self.start_angle))]
 
     def render(self, screen):
-        gfx.filled_circle(screen, self.pos[0], self.pos[1], self.detect_r, (0, 100, 0, 30))
-        gfx.filled_circle(screen, self.pos[0], self.pos[1], self.kernel_r, (200, 0, 0, 80))
+        gfx.filled_circle(screen, self.pos[0], self.pos[1], self.detect_r, (50, 100, 100, 120))
+        gfx.filled_circle(screen, self.pos[0], self.pos[1], self.kernel_r, (200, 50, 50, 120))
         pygame.draw.line(screen, (200, 0, 0), (self.pos[0], self.pos[1]), (int(self.detect_direction[0] + self.pos[0]), int(self.detect_direction[1] + self.pos[1])), 2)
         screen.blit(self.img, self.draw_pos)
+        Pencil.write_text(screen, "Radar", (self.draw_pos[0], self.draw_pos[1] + 30), 14, (255, 255, 255),
+                          font_family="simsunnsimsun")
 
     def update(self, **kwargs) -> bool:
         time_step = kwargs["time_step"]

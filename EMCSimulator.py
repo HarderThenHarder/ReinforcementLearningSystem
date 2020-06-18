@@ -10,10 +10,12 @@ from BlueTeam.BlueTeam import BlueTeam
 import json
 import time
 from utilis.MathUtils import MathUtils
+from Drawer.Pencil import Pencil
 
 
 TIME_SCALE_LIST = [1, 50, 100, 200]     # speed up the simulation
 TIME_SCALE_INDEX = 3
+
 
 class EMCSimulator(object):
 
@@ -27,21 +29,23 @@ class EMCSimulator(object):
         self.reward = 0
         self.last_time = time.clock()
 
-    def write_env_info(self, text_list, screen, my_font):
+    def write_env_info(self, text_list, screen):
+        Pencil.write_text(screen, "2020 Basic Invade Scene for Reinforcement Learning(BisRL)",
+                          (20, 20), 15, (255, 255, 255), font_family="simsunnsimsun")
+
         for i, text in enumerate(text_list):
-            screen.blit(my_font.render(text, True, (0, 0, 0)), (10, 10 + i * 20))
+            Pencil.write_text(screen, text, (20, 60 + i * 20), 14, (255, 255, 255), font_family="simsunnsimsun")
 
     def init_pygame(self):
         pygame.init()
         self.screen = pygame.display.set_mode((self.width, self.height), 0, 32)
-        pygame.display.set_caption("EMC Simulation -v1.0 Made by Pky @FPS: 0")
-        self.bg = pygame.image.load("img/bg.png")
+        pygame.display.set_caption("BisRL Simulator -v1.0 Made by Pky @FPS: 0")
+        self.bg = pygame.image.load("img/bg3.png")
         self.bg = pygame.transform.scale(self.bg, (self.width, self.height))
         self.my_font = pygame.font.SysFont("timesnewroman", 16)
 
 
     def reset(self):
-        # print("Jump into reset function!")
         self.reward = 0
         self.blue_team.reset()
         self.red_team.reset()
@@ -50,8 +54,8 @@ class EMCSimulator(object):
         for radar in self.blue_team.object_dict["radar"]:
             obs_list.append(radar.pos[0])
             obs_list.append(radar.pos[1])
-            # obs_list.append(radar.detect_direction[0])
-            # obs_list.append(radar.detect_direction[1])
+            obs_list.append(radar.detect_direction[0])
+            obs_list.append(radar.detect_direction[1])
         command = self.blue_team.object_dict["command"][0]
         obs_list.append(command.pos[0])
         obs_list.append(command.pos[1])
@@ -74,7 +78,7 @@ class EMCSimulator(object):
 
         self.write_env_info(["Time Scale: %3d" % TIME_SCALE_LIST[TIME_SCALE_INDEX],
                              "Red Team  : Attack",
-                             "Blue Team : Defend "], self.screen, self.my_font)
+                             "Blue Team : Defend "], self.screen)
 
         pygame.display.update()
 
@@ -84,8 +88,8 @@ class EMCSimulator(object):
         for radar in self.blue_team.object_dict["radar"]:
             obs_list.append(radar.pos[0])
             obs_list.append(radar.pos[1])
-            # obs_list.append(radar.detect_direction[0])
-            # obs_list.append(radar.detect_direction[1])
+            obs_list.append(radar.detect_direction[0])
+            obs_list.append(radar.detect_direction[1])
         command = self.blue_team.object_dict["command"][0]
         obs_list.append(command.pos[0])
         obs_list.append(command.pos[1])
@@ -105,45 +109,38 @@ class EMCSimulator(object):
         for radar in radar_list:
             for uav in attackuav_list:
 
-                # check if the uav is out of the map, reward = -200
+                # check if the uav is out of the map, reward = -2
                 if uav.pos[0] < 0 or uav.pos[0] > self.width or uav.pos[1] < 0 or uav.pos[1] > self.height:
                     # print("【System Info】Attack UAV-%d is out of map!" % uav.index)
-                    self.reward = -50
+                    self.reward = -2
                     return True
 
-                # check if uav is be detected, reward = -100
+                # check if uav is be detected, reward = -1
                 distance = MathUtils.get_distance(radar.pos, uav.pos)
                 if distance < radar.detect_r:
                     if distance < radar.kernel_r:
                         # print("【System Info】Attack UAV-%d is in Radar's kernel area!" % uav.index)
-                        self.reward = -100
+                        self.reward = -1
                         return True
                     else:
                         relative_vec = [uav.pos[0] - radar.pos[0], uav.pos[1] - radar.pos[1]]
                         angle = MathUtils.get_angle_from_two_vectors(relative_vec, radar.detect_direction)
                         if angle < 1:     # if the angle between vector1 (uav to radar) and vector2 (radar's detect direction) < 1 means uav has been detected
                             # print("【System Info】Attack UAV-%d has been Detected!" % uav.index)
-                            self.reward = -100
+                            self.reward = -1
                             return True
 
                 target = self.blue_team.object_dict["command"][0]
                 distance = MathUtils.get_distance(target.pos, uav.pos)
                 if distance < target.warning_area_r:
-                    self.reward = 500
+                    self.reward += 1
                     return True
-
-                # set the positive reward by the 1 / distance (to target)
-                d = MathUtils.get_distance(uav.pos, self.blue_team.object_dict["command"][0].pos)
-                self.reward = 1 / d * 500
         return False
 
     def step(self, red_action_list, blue_action_list):
-        # now = time.clock()
-        # time_step = now - self.last_time
-        # self.last_time = now
         time_step = 0.03
         if time_step > 1e-5:
-            pygame.display.set_caption("EMC Simulation -v1.0 Made by Pky @FPS: %d" % (1 / time_step))
+            pygame.display.set_caption("BisRL Simulator -v1.0 Made by Pky @FPS: %d" % (1 / time_step))
         time_step = time_step * TIME_SCALE_LIST[TIME_SCALE_INDEX]
         self.blue_team.update(time_step, self, blue_action_list)
         self.red_team.update(time_step, self, red_action_list)

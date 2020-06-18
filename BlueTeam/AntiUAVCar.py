@@ -15,7 +15,7 @@ class AntiUAVCar(GameObject):
         self.velocity = velocity
 
     def render(self, screen):
-        gfx.filled_circle(screen, self.pos[0], self.pos[1], self.detect_r, (100, 0, 100, 20))
+        gfx.filled_circle(screen, self.pos[0], self.pos[1], self.detect_r, (100, 50, 100, 50))
         screen.blit(self.img, self.draw_pos)
 
     def update(self, **kwargs) -> bool:

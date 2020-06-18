@@ -123,7 +123,7 @@ class Runner(object):
 
     def run(self):
         # initialize the lists that will contain the batch of experiences and the stats of finished episodes
-        b_obs, b_rew, b_act, b_opv, b_olp, b_done, t_rew_list, t_len_list= [], [], [], [], [], [], [], []
+        b_obs, b_rew, b_act, b_opv, b_olp, b_done, t_rew_list, t_len_list = [], [], [], [], [], [], [], []
 
         for _ in range(self.nsteps):
             # Given observations, get action, value and logp

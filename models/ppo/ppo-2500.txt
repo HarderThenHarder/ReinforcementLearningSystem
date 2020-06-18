@@ -1,1 +1,0 @@
-Test results: mean reward 2.7658045977011496 in 2088 episodes

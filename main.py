@@ -1,29 +1,143 @@
 """
-@ Author: Pky
-@ Time: 2020/2/2
-@ Software: PyCharm 
+@Author: P_k_y
+@Time: 2020/6/13
 """
+
 import json
 from RedTeam.RedTeam import RedTeam
 from BlueTeam.BlueTeam import BlueTeam
 from EMCSimulator import EMCSimulator
-from AlgorithmsLib.PolicyGradient import PolicyGradient
-from AlgorithmsLib.DQN import DQN
-from AlgorithmsLib.PPO import PPO
 import torch
 from torch.utils.tensorboard import SummaryWriter
 import os
 import shutil
-from runner import Runner
 import numpy as np
-import tensorflow as tf
+from AlgorithmsLib.PPO_torch import PPO
+import math
 
-
-Epoch = 5000
+Epoch = 500000
 MAXSTEP = 1e5
+UPDATE_INTERVAL = 5000
+RENDER = False
+LOGGING_INTERVAL = 20
 
 
-def PG_brain():
+def polar_coordinates_from_two_points(x: list, y: list):
+    # polar coordinates of x with respect to y
+    # angle starts at positive half axis of x with (0, 2*pi) in radian
+    angle = math.atan2(x[1] - y[1], x[0] - y[0])
+    if (angle < 0):
+        angle = angle + math.pi * 2  # wrong version but works: angle = angle + math.pi
+    distance = math.sqrt(math.pow(x[0] - y[0], 2) + math.pow(x[1] - y[1], 2))
+    return [distance, angle]
+
+
+def normalize(x: np.array):
+    """
+        :param x: the preprocessed observation with straight meaning
+        :return: the normalized observation between -1 and 1
+    """
+    max_dis = math.sqrt(800 * 800 + 1400 * 1400)
+
+    # normalize the distance
+    x[0] = x[0] / max_dis * 2 - 1
+    x[3] = x[3] / max_dis * 2 - 1
+    x[6] = x[6] / max_dis * 2 - 1
+    x[9] = x[9] / max_dis * 2 - 1
+    x[12] = x[12] / max_dis * 2 - 1
+
+    # normalize the angle
+    x[1] = x[1] / math.pi - 1
+    x[2] = x[2] / math.pi - 1
+    x[4] = x[4] / math.pi - 1
+    x[5] = x[5] / math.pi - 1
+    x[7] = x[7] / math.pi - 1
+    x[8] = x[8] / math.pi - 1
+    x[10] = x[10] / math.pi - 1
+    x[11] = x[11] / math.pi - 1
+    x[13] = x[13] / math.pi - 1
+    x[14] = x[14] / math.pi - 1
+
+    return x
+
+
+def preprocess_obs(x: list):
+    """
+        :param x: the observation from env
+        :param y: the time step of the episode
+        :return: the observation suitable for the algorithm
+    """
+    # # polar coordinates of uav with respect to four radars
+    # x[2:4] = polar_coordinates_from_two_points(x[0:2], x[2:4])
+    # x[4:6] = polar_coordinates_from_two_points(x[0:2], x[4:6])
+    # x[6:8] = polar_coordinates_from_two_points(x[0:2], x[6:8])
+    # x[8:10] = polar_coordinates_from_two_points(x[0:2], x[8:10])
+    # # polar coordinates of uav with respect to the command
+    # x[10:12] = polar_coordinates_from_two_points(x[0:2], x[10:12])
+    # # the marching direction of uav(direction of cartesian coordinates (1, 0) in the map as 0 & (-pi, pi))
+    # x[12] = math.atan2(x[13], x[12])
+    # # the time flag
+    # x[13] = y
+
+    # 处理观测向量
+    x[2:4] = polar_coordinates_from_two_points(x[0:2], x[2:4])
+    x[4] = math.atan2(x[5], x[4])
+    x[5:7] = polar_coordinates_from_two_points(x[0:2], x[6:8])
+    x[7] = math.atan2(x[9], x[8])
+    x[8:10] = polar_coordinates_from_two_points(x[0:2], x[10:12])
+    x[10] = math.atan2(x[13], x[12])
+    x[11:13] = polar_coordinates_from_two_points(x[0:2], x[14:16])
+    x[13] = math.atan2(x[17], x[16])
+    x[14:16] = polar_coordinates_from_two_points(x[0:2], x[18:20])
+    x[16] = math.atan2(x[21], x[20])
+
+    return normalize(np.array(x[2:17]))       # 15-dim obs
+
+
+def shaping_reward(x: list, y: bool, z: bool):
+    """
+        :param x: the preprocessed observation with straight meaning
+        :param y: flag indicate whether the uav has marched into the radar area
+        :param z: flag indicate whether the uav has marched out of the radar area
+        :return: the shaped reward according to the observation and the updated flag
+    """
+    max_dis = math.sqrt(800 * 800 + 1400 * 1400)
+    normalize_radar_detect_r = 200 / max_dis * 2 - 1
+    normalize_command_detect_r = 100 / max_dis * 2 - 1
+
+    if not y:
+        if x[0] < normalize_radar_detect_r or x[3] < normalize_radar_detect_r or x[6] < normalize_radar_detect_r or x[9] < normalize_radar_detect_r:
+            # marching into the radar area
+            y = True
+            r = 1
+        else:
+            # beginning position outside
+            r = 0
+    elif y and not z:
+        if x[0] > normalize_radar_detect_r and x[3] > normalize_radar_detect_r and x[6] > normalize_radar_detect_r and x[9] > normalize_radar_detect_r:
+            if x[12] < 630 / max_dis * 2 - 1:
+                # marching to command out of the radar area
+                r = 1
+                z = True
+            else:
+                # marching back out of the radar area
+                r = -1
+                y = False
+        else:
+            # marching in the radar area
+            r = 0
+    else:
+        # radar area passed
+        if x[12] < normalize_command_detect_r:
+            # the command got
+            r = 1
+        else:
+            # searching the command
+            r = 0
+    return r, y, z
+
+
+def trainPPO():
     config = json.load(open("config.json", 'r'))
     red_team_object_list = config["red_team"]
     blue_team_object_list = config["blue_team"]
@@ -32,214 +146,89 @@ def PG_brain():
     blue_team = BlueTeam(blue_team_object_list)
     simulator = EMCSimulator(1400, 800, blue_team, red_team)
 
-    PG = PolicyGradient(observation_dim=20, action_dim=3)
+    ppo = PPO(state_dim=15, action_dim=3)
 
-    for i_eposide in range(Epoch):
-        obs = simulator.reset()
-        obs = torch.FloatTensor(obs)
-
-        step = 0
-        while True:
-            step += 1
-            simulator.render()
-            action = PG.choose_action(obs)
-            red_action_list = [[action], [1, 1, 1]]       # [[Attack UAV1], [Jamming UAV1, Jamming UAV2, Jamming UAV3]]
-            blue_action_list = []                         # Not set yet
-            obs_, r, done = simulator.step(red_action_list, blue_action_list)
-            PG.store_transition(obs, r, action)
-
-            if done or step > MAXSTEP:
-                ep_r = sum(PG.ep_r)
-                loss = PG.learn()
-                print("Episode: %d | Reward: %d | Loss: %.4f" % (i_eposide, ep_r, loss.item()))
-                break
-            obs = torch.FloatTensor(obs_)
-
-
-def DQN_brain():
-    render_flag = True
-    config = json.load(open("config.json", 'r'))
-    red_team_object_list = config["red_team"]
-    blue_team_object_list = config["blue_team"]
-
-    red_team = RedTeam(red_team_object_list)
-    blue_team = BlueTeam(blue_team_object_list)
-    simulator = EMCSimulator(1400, 800, blue_team, red_team, render=True)
-
-    dqn = DQN(observation_dim=12, action_dim=3, memory_capacity=1000)
-
-    log_name = "run/DQN_brain_no_render"
+    log_name = "run/PPO_tensorflow"
     if os.path.exists(log_name):
         shutil.rmtree(log_name)
     writer = SummaryWriter(log_name)
-    writer.add_graph(dqn.evaluate_net, torch.randn(1, dqn.observation_dim))
 
-    for i_eposide in range(Epoch):
+    running_reward = 0
+    time_step = 0
+    total_time_step = 0
+
+    for i_episode in range(Epoch):
+        in_radar_flag = out_radar_flag = False
         obs = simulator.reset()
-        obs = torch.FloatTensor(obs)
-        running_loss = 0
-        cumulative_reward = 0
-        step = 0
-        while True:
-            step += 1
-            if render_flag:
+        obs = preprocess_obs(obs)
+
+        for t in range(int(MAXSTEP)):
+            if RENDER:
                 simulator.render()
-            action = dqn.choose_action(obs)
-            red_action_list = [[action], [1, 1, 1]]       # [[Attack UAV1], [Jamming UAV1, Jamming UAV2, Jamming UAV3]]
-            blue_action_list = []                         # Not set yet
+            total_time_step += 1
+            time_step += 1
+            action = ppo.policy_old.act(obs, ppo.memory)
+            red_action_list = [[action], [1, 1, 1]]  # [[Attack UAV1], [Jamming UAV1, Jamming UAV2, Jamming UAV3]]
+            blue_action_list = []  # Not set yet
             obs_, r, done = simulator.step(red_action_list, blue_action_list)
-            dqn.store_transition(obs, action, r, obs_)
+            obs = preprocess_obs(obs_)
 
-            # It means uav has arrived at enemy's command
-            if r == 500:
-                # render_flag = True
-                torch.save(dqn.evaluate_net, "./models/dqn/evaluate_net_%d.pth" % i_eposide)
-                torch.save(dqn.target_net, "./models/dqn/target_net_%d.pth" % i_eposide)
-                print("\n -> Model has saved at: './models/dqn/xx.pth'\n")
+            reward, in_radar_flag, out_radar_flag = shaping_reward(obs, in_radar_flag, out_radar_flag)
+            if done and r != 1:  reward -= 1
 
+            ppo.memory.rewards.append(reward)
+            ppo.memory.is_terminals.append(done)
 
-            cumulative_reward += r
-            if dqn.point > dqn.memory_capacity:
-                loss = dqn.learn()
-                running_loss += loss
-                if done or step > MAXSTEP:
-                    writer.add_scalar("training/Loss", running_loss / step, dqn.learn_step)
-                    writer.add_scalar("training/Reward", cumulative_reward, dqn.learn_step)
-                    writer.add_scalar("training/Exploration", dqn.epsilon, dqn.learn_step)
-                    print("\n - Episode: %d Cumulative Reward: %.2f\n" % (i_eposide, cumulative_reward))
-                    break
-                elif step % 100 == 99:
-                    print("Episode: %d| Global Step: %d| Loss:  %.4f, Reward: %.2f, Exploration: %.4f" % (i_eposide, dqn.learn_step, running_loss / step, cumulative_reward, dqn.epsilon))
-            else:
-                print("\rCollecting experience: %d / %d..." % (dqn.point, dqn.memory_capacity), end='')
+            if time_step % UPDATE_INTERVAL == 0:
+                ppo.update()
+                time_step = 0
 
+            running_reward += reward
             if done:
                 break
-            obs = torch.FloatTensor(obs_)
+
+        if i_episode % LOGGING_INTERVAL == 0:
+            running_reward = float("%.2f" % (running_reward / LOGGING_INTERVAL))
+            print('Episode {} \t|\t reward: {}'.format(i_episode, running_reward))
+            writer.add_scalar("training/Reward", running_reward, i_episode)
+            if running_reward == 3:
+                torch.save(ppo.policy_old, "./models/PPO_tensorflow/ppo_%d.pth" % i_episode)
+            running_reward = 0
 
 
-def PPO_brain():
-    # build the environment
-    render_flag = True
+def testPPO():
     config = json.load(open("config.json", 'r'))
     red_team_object_list = config["red_team"]
     blue_team_object_list = config["blue_team"]
+
     red_team = RedTeam(red_team_object_list)
     blue_team = BlueTeam(blue_team_object_list)
-    simulator = EMCSimulator(1400, 800, blue_team, red_team, render=True)
+    simulator = EMCSimulator(1400, 800, blue_team, red_team)
 
-    # build the graph
-    mean_r = tf.Variable(0, dtype=tf.float32, name= 'mean_return', trainable=False)
-    mean_l = tf.Variable(0, dtype=tf.float32, name='mean_length', trainable=False)
-    mean_pl = tf.Variable(0, dtype=tf.float32, name='mean_policy_loss', trainable=False)
-    mean_vl = tf.Variable(0, dtype=tf.float32, name='mean_value_loss', trainable=False)
-    mean_ent = tf.Variable(0, dtype=tf.float32, name='mean_entropy', trainable=False)
-    mean_kl = tf.Variable(0, dtype=tf.float32, name='mean_kl_divergence', trainable=False)
-    mean_cf = tf.Variable(0, dtype=tf.float32, name='mean_clip_fraction', trainable=False)
-    ppo = PPO(observation_dim=12, action_dim=3, vf_coef=0.5, ent_coef=0.1, max_grad_norm=0.5)
-    runner = Runner(env=simulator, model=ppo, nsteps=4096, gamma=0.99, lam=0.95, render=render_flag)
+    ppo = PPO(state_dim=15, action_dim=3)
+    ppo.policy_old = torch.load("./models/PPO/ppo_17680.pth")
 
-    # setup the saver and logger
-    sess = tf.get_default_session()
-    saver = tf.train.Saver(max_to_keep = 50)
-    tf.summary.scalar('mean_return', mean_r)
-    tf.summary.scalar('mean_length', mean_l)
-    tf.summary.scalar('mean_policy_loss', mean_pl)
-    tf.summary.scalar('mean_value_loss', mean_vl)
-    tf.summary.scalar('mean_entropy', mean_ent)
-    tf.summary.scalar('mean_kl_divergence', mean_kl)
-    tf.summary.scalar('mean_clip_fraction', mean_cf)
-    merged_summary_op = tf.summary.merge_all()
-    summary_wirter = tf.summary.FileWriter('run/ppo', sess.graph)
+    with torch.no_grad():
+        while True:
+            obs = simulator.reset()
+            obs = preprocess_obs(obs)
+            running_reward = 0
+            for i in range(2000):
+                simulator.render()
 
-    # configure the training hyperparameters
-    lr = 3e-4
-    cr = 0.2
-    nbatch = 4096
-    nminibatch = 64
-    noptepochs = 4
-    nupdates = 2500
-    nbatch_train = int(nbatch / nminibatch)
-    log_interval = 5
-    save_interval = 50
-    total_length = []
-    total_reward = []
+                action = ppo.policy_old.act(obs, ppo.memory)
+                red_action_list = [[action], [1, 1, 1]]  # [[Attack UAV1], [Jamming UAV1, Jamming UAV2, Jamming UAV3]]
+                blue_action_list = []  # Not set yet
+                obs_, r, done = simulator.step(red_action_list, blue_action_list)
+                obs = preprocess_obs(obs_)
 
-    # start the training procedure
-    for update in range(1, nupdates + 1):
-        frac = 1.0 - (update - 1.0) / nupdates
-        lrnow = lr * frac
-        crnow = cr * frac
+                ppo.memory.clear_memory()
+                running_reward += r
 
-        # stepping the environment
-        b_obs, b_ret, b_act, b_opv, b_olp, t_len, t_rew = runner.run()
-        total_length += t_len
-        total_reward += t_rew
-
-        # updating the network
-        inds = np.arange(nbatch)
-        stats = []
-        for _ in range(noptepochs):
-            # Randomize the indexes
-            np.random.shuffle(inds)
-            # 0 to batch_size with batch_train_size step
-            for start in range(0, nbatch, nbatch_train):
-                end = start + nbatch_train
-                mbinds = inds[start:end]
-                slices = (arr[mbinds] for arr in (b_obs, b_act, b_ret, b_opv, b_olp))
-                stats.append(ppo.train(lrnow, crnow, *slices))
-
-        # mean stats of the current update
-        mean_stats = np.mean(stats, axis=0)
-        up1 = tf.assign(mean_pl, mean_stats[0])
-        up2 = tf.assign(mean_vl, mean_stats[1])
-        up3 = tf.assign(mean_ent, mean_stats[2])
-        up4 = tf.assign(mean_kl, mean_stats[3])
-        up5 = tf.assign(mean_cf, mean_stats[4])
-        sess.run([up1, up2, up3, up4,up5])
-
-        # logging with fixed interval
-        if(update % log_interval == 0):
-            t_len_mean = np.mean(total_length)
-            t_rew_mean = np.mean(total_reward)
-            up6 = tf.assign(mean_l, t_len_mean)
-            up7 = tf.assign(mean_r, t_rew_mean)
-            sess.run([up6, up7])
-            summary_str = sess.run(merged_summary_op)
-            summary_wirter.add_summary(summary_str, update)
-            total_length = []
-            total_reward = []
-
-        # saving with fixed interval
-        if(update % save_interval == 0):
-            saver.save(sess, 'models/ppo/ppo', global_step=update)
-
-
-def PPO_test():
-    render_flag = True
-    config = json.load(open("config.json", 'r'))
-    red_team_object_list = config["red_team"]
-    blue_team_object_list = config["blue_team"]
-    red_team = RedTeam(red_team_object_list)
-    blue_team = BlueTeam(blue_team_object_list)
-    simulator = EMCSimulator(1400, 800, blue_team, red_team, render=True)
-
-    ppo = PPO(observation_dim=12, action_dim=3, vf_coef=0.5, ent_coef=0.1, max_grad_norm=0.5)
-    runner = Runner(env=simulator, model=ppo, nsteps=4096, gamma=0.99, lam=0.95, render=render_flag)
-
-    saver = tf.train.Saver()
-    sess = tf.get_default_session()
-    saver.restore(sess, "models/ppo/ppo-2500")
-
-    rew_list = []
-    for _ in range(300):
-        _, _, _, _, _, _, rew = runner.run()
-        rew_list += rew
-    print('Test results: mean reward {} in {} episodes'.format(np.mean(rew_list), len(rew_list)))
+                if done:
+                    break
 
 
 if __name__ == '__main__':
-    # PG_brain()
-    # DQN_brain()
-    # PPO_brain()
-    PPO_test()
+    # trainPPO()
+    testPPO()

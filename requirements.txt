@@ -1,5 +1,5 @@
 pygame
-pytorch
+torch
 torchvision
 tensorflow
 tensorboard

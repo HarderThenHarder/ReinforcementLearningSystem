@@ -13,10 +13,10 @@
 
     "blue_team":   {
                         "radar": [
-                                    {"pos": [1200, 80], "img_path": "img/radar.png", "index": 0, "detect_r": 200, "kernel_r": 80, "rotate_speed": 0.1},
-                                    {"pos": [980, 240], "img_path": "img/radar.png", "index": 1, "detect_r": 200, "kernel_r": 80, "rotate_speed": 0.1},
+                                    {"pos": [1200, 120], "img_path": "img/radar.png", "index": 0, "detect_r": 200, "kernel_r": 80, "rotate_speed": 0.1},
+                                    {"pos": [980, 250], "img_path": "img/radar.png", "index": 1, "detect_r": 200, "kernel_r": 80, "rotate_speed": 0.1},
                                     {"pos": [780, 450], "img_path": "img/radar.png", "index": 2, "detect_r": 200, "kernel_r": 80, "rotate_speed": 0.1},
-                                    {"pos": [600, 640], "img_path": "img/radar.png", "index": 3, "detect_r": 200, "kernel_r": 80, "rotate_speed": 0.1}
+                                    {"pos": [600, 660], "img_path": "img/radar.png", "index": 3, "detect_r": 200, "kernel_r": 80, "rotate_speed": 0.1}
                                 ],
 
                         "command": [
